@@ -2,16 +2,18 @@ import cv2 as cv
 import math
 from pyzbar import pyzbar
 
-
+# Hàm dự đoán góc nghiêng và xoay ảnh chứa barcode
 def RotateImg(imgx):
-    # Convert to greyscale image
+    # Chuyển sang ảnh grayscale
     img_gray = cv.cvtColor(imgx, cv.COLOR_BGR2GRAY)
 
-    # Use fast line detector to detect lines from barcode
+    # Dùng thuật toán fast line detector để lấy tất cả các đường thẳng có trong ảnh
     fld = cv.ximgproc.createFastLineDetector()
     lines = fld.detect(img_gray)
 
-    # Predict rotation angle of the barcode
+    # Tính góc và độ dài của từng đường thẳng, sau đó cộng đô dài của các đường
+    # có chung góc với nhau (các góc được làm tròn). Góc nào có tổng độ dài lớn
+    # nhất chính là góc nghiêng của barcode
     lenSum = [0] * 180
     maxLen = 0
     maxAngle = 0
@@ -26,9 +28,10 @@ def RotateImg(imgx):
             maxLen = lenSum[angle + 89]
             maxAngle = angle
 
+    # Trả về ảnh đã được xoay
     return rotate_im(imgx, 90 + maxAngle)
 
-# rotate image an angle without cropping
+# Xoay ảnh mà ko làm mất phần nào của ảnh
 def rotate_im(image, angle):
     image_height = image.shape[0]
     image_width = image.shape[1]
@@ -63,20 +66,20 @@ def rotate_im(image, angle):
                                   borderValue=(255, 255, 255))
     return rotated_image
 
-# Decode image with ZBar
+# Scan ảnh bằng thư viện ZBar
 def ScanImg(imgx):
     scanedImg = imgx.copy()
+
+    # Decode
     barcodes = pyzbar.decode(scanedImg)
 
     if len(barcodes) == 0:
         return -1
     for barcode in barcodes:
-        # extract the bounding box location of the barcode and draw the
-        # bounding box surrounding the barcode on the image
+        # Vẽ các dữ liệu Zbar decode được lên ảnh
         (x, y, w, h) = barcode.rect
         cv.rectangle(scanedImg, (x, y), (x + w, y + h), (0, 0, 255), 2)
-        # the barcode data is a bytes object so if we want to draw it on
-        # our output image we need to convert it to a string first
+
         barcodeData = barcode.data.decode("utf-8")
         barcodeType = barcode.type
         # draw the barcode data and barcode type on the image
